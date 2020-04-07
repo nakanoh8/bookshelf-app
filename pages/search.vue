@@ -1,7 +1,15 @@
 <template>
   <section class="container">
 
-    <h3 class="mb-4">本の一覧</h3>
+    <h3 class="mb-4">本を検索する</h3>
+    <b-form @submit="searchBookshelf" class="mb-5">
+      <b-input-group>
+        <b-form-input id="bookInput" v-model="query" placeholder="本のタイトル"></b-form-input>
+        <b-button slot="append" type="submit" variant="primary">検索</b-button>
+      </b-input-group>
+    </b-form>
+
+    <p v-if="items.length > 0">「{{query}}」の検索結果：{{items.length}}件</p>
 
     <ul class="list-unstyled">
       <b-media no-body tag="li" v-for="(item, index) in items" class="mb-5">
@@ -17,7 +25,6 @@
         </b-media-body>
       </b-media>
     </ul>
-
   </section>
 </template>
 
@@ -28,6 +35,7 @@ import firebase from '~/plugins/firebase'
 export default {
   data () {
     return {
+      query: '',
       items: []
     }
   },
@@ -41,27 +49,20 @@ export default {
       }
     },
 
-    deleteBook(item, index) {
-      const self = this
-      const db = firebase.firestore()
-      db.collection("books").doc(item.firebaseId).delete().then(function() {
-        self.items.splice(index, 1)
-        console.log("Document successfully deleted!")
-      }).catch(function(error) {
-        console.error("Error removing document: ", error)
+    searchBookshelf(e) {
+      e.preventDefault()
+
+      this.items = []
+      const db = firebase.firestore();
+
+      db.collection("books").where("title", "==", this.query).get().then(querySnapshot => {
+        querySnapshot.forEach((doc) => {
+          const item = doc.data()
+          item.firebaseId = doc.id
+          this.items.push(item)
+        })
       })
     }
-  },
-
-  mounted() {
-    const db = firebase.firestore();
-    db.collection("books").get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        const item = doc.data()
-        item.firebaseId = doc.id
-        this.items.push(item)
-      })
-    })
   }
 }
 </script>
